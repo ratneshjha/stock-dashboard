@@ -43,14 +43,14 @@ def get_strongest_stocks(top_n=10):
         return None
 
     # Fetch data in smaller chunks to avoid issues
-    chunk_size = 100
+    chunk_size = 50
     all_data = []
     for i in range(0, len(tickers), chunk_size):
         chunk = tickers[i:i + chunk_size]
         data = get_stock_data(chunk)
         if data is not None:
             all_data.append(data)
-        time.sleep(1)  # Add a 1-second delay between chunks
+        time.sleep(2)  # Add a 2-second delay between chunks
 
     if not all_data:
         return None
