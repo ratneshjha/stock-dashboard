@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import time
 
 def get_sp500_tickers():
     """Fetches the list of S&P 500 tickers from Wikipedia."""
@@ -49,6 +50,7 @@ def get_strongest_stocks(top_n=10):
         data = get_stock_data(chunk)
         if data is not None:
             all_data.append(data)
+        time.sleep(1)  # Add a 1-second delay between chunks
 
     if not all_data:
         return None
@@ -57,6 +59,10 @@ def get_strongest_stocks(top_n=10):
 
     # Drop columns with all NaN values
     full_data = full_data.dropna(axis=1, how='all')
+
+    if full_data.empty:
+        print("No data available to calculate momentum and volatility.")
+        return None
 
     momentum = calculate_momentum(full_data)
     volatility = calculate_volatility(full_data).iloc[-1]
