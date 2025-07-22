@@ -1,7 +1,12 @@
-import yfinance as yf
+from alpha_vantage.timeseries import TimeSeries
 import pandas as pd
 import numpy as np
 import time
+
+# --- IMPORTANT ---
+# Replace 'YOUR_API_KEY' with your actual Alpha Vantage API key.
+# You can get a free API key from https://www.alphavantage.co/support/#api-key
+API_KEY = 'YOUR_API_KEY'
 
 def get_sp500_tickers():
     """Fetches the list of S&P 500 tickers from Wikipedia."""
@@ -16,13 +21,14 @@ def get_sp500_tickers():
         print(f"Error fetching S&P 500 tickers: {e}")
         return None
 
-def get_stock_data(tickers, period="1y", interval="1d"):
-    """Fetches historical stock data for a list of tickers."""
+def get_stock_data(ticker, output_size='full'):
+    """Fetches historical stock data for a single ticker from Alpha Vantage."""
     try:
-        data = yf.download(tickers, period=period, interval=interval)
-        return data['Adj Close']
+        ts = TimeSeries(key=API_KEY, output_format='pandas')
+        data, meta_data = ts.get_daily_adjusted(symbol=ticker, outputsize=output_size)
+        return data['5. adjusted close']
     except Exception as e:
-        print(f"Error fetching stock data: {e}")
+        print(f"Error fetching stock data for {ticker}: {e}")
         return None
 
 def calculate_momentum(data):
@@ -42,20 +48,18 @@ def get_strongest_stocks(top_n=10):
     if not tickers:
         return None
 
-    # Fetch data in smaller chunks to avoid issues
-    chunk_size = 50
-    all_data = []
-    for i in range(0, len(tickers), chunk_size):
-        chunk = tickers[i:i + chunk_size]
-        data = get_stock_data(chunk)
+    all_data = {}
+    for ticker in tickers:
+        print(f"Fetching data for {ticker}...")
+        data = get_stock_data(ticker)
         if data is not None:
-            all_data.append(data)
-        time.sleep(2)  # Add a 2-second delay between chunks
+            all_data[ticker] = data
+        time.sleep(12)  # Alpha Vantage free tier allows 5 calls per minute
 
     if not all_data:
         return None
 
-    full_data = pd.concat(all_data, axis=1)
+    full_data = pd.DataFrame(all_data)
 
     # Drop columns with all NaN values
     full_data = full_data.dropna(axis=1, how='all')
