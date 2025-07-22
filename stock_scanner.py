@@ -25,8 +25,8 @@ def get_stock_data(ticker, output_size='full'):
     """Fetches historical stock data for a single ticker from Alpha Vantage."""
     try:
         ts = TimeSeries(key=API_KEY, output_format='pandas')
-        data, meta_data = ts.get_daily_adjusted(symbol=ticker, outputsize=output_size)
-        return data['5. adjusted close']
+        data, meta_data = ts.get_daily(symbol=ticker, outputsize=output_size)
+        return data['4. close']
     except Exception as e:
         print(f"Error fetching stock data for {ticker}: {e}")
         return None
