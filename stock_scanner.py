@@ -8,23 +8,11 @@ import time
 # You can get a free API key from https://www.alphavantage.co/support/#api-key
 API_KEY = 'YOUR_API_KEY'
 
-def get_sp500_tickers():
-    """Fetches the list of S&P 500 tickers from Wikipedia."""
-    try:
-        payload = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-        first_table = payload[0]
-        tickers = first_table['Symbol'].values.tolist()
-        # Replace tickers with dots with dashes
-        tickers = [ticker.replace('.', '-') for ticker in tickers]
-        return tickers
-    except Exception as e:
-        print(f"Error fetching S&P 500 tickers: {e}")
-        return None
 
-def get_stock_data(ticker, output_size='full'):
+def get_stock_data(ticker, output_size='full', timeout=30):
     """Fetches historical stock data for a single ticker from Alpha Vantage."""
     try:
-        ts = TimeSeries(key=API_KEY, output_format='pandas')
+        ts = TimeSeries(key=API_KEY, output_format='pandas', treat_info_as_error=True)
         data, meta_data = ts.get_daily(symbol=ticker, outputsize=output_size)
         return data['4. close']
     except Exception as e:
@@ -42,9 +30,10 @@ def calculate_volatility(data):
     log_returns = np.log(data / data.shift(1))
     return log_returns.rolling(window=252).std() * np.sqrt(252)
 
-def get_strongest_stocks(top_n=10):
-    """Identifies the top N strongest stocks based on momentum and volatility."""
-    tickers = get_sp500_tickers()
+def analyze_portfolio(tickers):
+    """
+    Analyzes a portfolio of stocks and provides recommendations.
+    """
     if not tickers:
         return None
 
@@ -75,12 +64,23 @@ def get_strongest_stocks(top_n=10):
     combined_score = momentum / volatility
 
     # Sort stocks by combined score
-    strongest_stocks = combined_score.sort_values(ascending=False)
+    ranked_stocks = combined_score.sort_values(ascending=False)
 
-    return strongest_stocks.head(top_n)
+    recommendations = []
+    for ticker, score in ranked_stocks.items():
+        if score > 0:
+            recommendations.append(f"KEEP {ticker} (Score: {score:.2f})")
+        else:
+            recommendations.append(f"SELL {ticker} (Score: {score:.2f})")
+
+    return recommendations
 
 if __name__ == "__main__":
-    top_10_stocks = get_strongest_stocks()
-    if top_10_stocks is not None:
-        print("Top 10 Strongest Stocks to Invest In:")
-        print(top_10_stocks)
+    # Get tickers from user
+    tickers_str = input("Enter a comma-separated list of stock tickers: ")
+    tickers = [ticker.strip() for ticker in tickers_str.split(',')]
+    recommendations = analyze_portfolio(tickers)
+    if recommendations is not None:
+        print("\nPortfolio Analysis:")
+        for recommendation in recommendations:
+            print(recommendation)
